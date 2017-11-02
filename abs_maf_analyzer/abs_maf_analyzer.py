@@ -5,53 +5,57 @@ from numpy import array
 from scipy.cluster.vq import vq, kmeans, whiten
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from decimal import Decimal
 from k_means_abs_maf import KMeansAbsMaf
 
 
 class AbsMafAnalyzer:
-    def __init__(self, abs_maf_path):
+    def __init__(self, abs_maf_path, detection_power_threshold=0, exclude_silent=True):
         self.abs_maf_path = abs_maf_path
+        self.detection_power_threshold = detection_power_threshold
+        self.exclude_silent = exclude_silent
         self.__read_abs_maf()
 
     def cluster_ccfs(self):
         # Cluster
-        num_clusters = 5
+        num_clusters = 4
         km = KMeansAbsMaf(self.abs_maf, num_clusters, columns=['ccf_hat'])
         km.cluster()
-        print(km.clusters)
-        centroid_values = [vector[0] for vector in km.centers.values]
+
         groups = []
         for i in range(num_clusters):
             groups.append([])
 
         for index, row in self.abs_maf.iterrows():
             group_index = km.clusters[index]
-            groups[group_index].append(row.ccf_hat)
-
-        colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
-        group_labels = range(num_clusters)
+            groups[group_index].append({'ccf_hat': row.ccf_hat, 'dp': row.detection_power})
 
         # Create plot
         fig = plt.figure()
         fig.set_size_inches(10, 4)
         ax = fig.add_subplot(1, 1, 1, facecolor="1.0")
 
-        for data, color, label, centroid in zip(groups, colors, group_labels, centroid_values):
-            # Change size depending on number of points at value
-            unit_size = 40
-
-            # Remove duplicates
-            data_deduped = list(set(data))
-
+        centroid_values = [vector[0] for vector in km.centers.values]
+        for data, color, label, centroid in zip(groups,
+                                                ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w'),
+                                                range(num_clusters),
+                                                centroid_values):
             cluster_size = len(data)
+            # Change size of centroid depiction depending on number of points at value
+            unit_size = 20
+            fraction_in_cluster = cluster_size/len(self.abs_maf)
+            centroid_marker_size = fraction_in_cluster*unit_size + 5
 
-            ax.set_ylim(bottom=-.0002, top=.0005)
-            ax.set_yticklabels([])
+            ax.set_ylim(bottom=-.2, top=1.1)
+
             ax.set_xlabel("Cancer Cell Fraction")
-            ax.plot([centroid], [.0003], '.', c='k', markeredgewidth=1, markerfacecolor=color, alpha=0.5,
-                    markeredgecolor='k', markersize=(cluster_size/len(self.abs_maf)*unit_size)+5)
-            ax.annotate("n = {}".format(len(data)), (centroid, .0003))
-            ax.scatter(data_deduped, np.zeros(len(data_deduped)), alpha=1, c=color, edgecolors='none', s=unit_size, label=label)
+            ax.set_ylabel("Detection Power")
+            ax.plot([centroid], [-.1], '.', c='k', markeredgewidth=1, markerfacecolor=color, alpha=0.5,
+                    markeredgecolor='k', markersize=centroid_marker_size)
+
+            ax.annotate("n = {}\nvalue = {}".format(len(data), round(centroid, 3)), (centroid, .0003))
+            ax.scatter([d['ccf_hat'] for d in data], [d['dp'] for d in data],
+                       alpha=1, c=color, edgecolors='none', s=unit_size, label=label)
 
         plt.title('Distribution of Cancer Cell Fraction for SNPs')
         plt.show()
@@ -61,5 +65,7 @@ class AbsMafAnalyzer:
         abs_maf = abs_maf.loc[:, ['Hugo_Symbol', 'Chromosome', 'Start_position', 'End_position',
                                   'Variant_Classification', 'Variant_Type', 'Reference Alelle',
                                   'Tumor_Seq_Allele1', 'Tumor_Seq_Allele2', 'ccf_hat', 'detection_power']]
-        self.abs_maf = abs_maf[abs_maf.Variant_Classification != 'Silent']
-        pass
+
+        if self.exclude_silent:
+            abs_maf = abs_maf[abs_maf.Variant_Classification != 'Silent']
+        self.abs_maf = abs_maf[abs_maf.detection_power >= self.detection_power_threshold]

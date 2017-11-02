@@ -4,7 +4,7 @@ import numpy as np
 import warnings
 from numbers import Integral
 import math
-
+import copy
 
 class KMeansAbsMaf:
 
@@ -67,7 +67,9 @@ class KMeansAbsMaf:
                 if point[0] == existing_point[0]:
                     duplicate_point = True
             if not duplicate_point:
-                rows.append(point)
+                point_copy = copy.copy(point)
+                point_copy = point_copy.rename(len(rows))
+                rows.append(point_copy)
 
         self.centers = DataFrame(rows, columns=self.columns)
 
@@ -90,19 +92,21 @@ class KMeansAbsMaf:
         if self.clusters is None:
             raise Exception("Clusters not computed!")
 
-        for i in list(range(self.k)):
-            self.centers.ix[i, :] = self.data_frame[
-                self.columns].ix[self.clusters == i].mean()
+        for i in range(self.k):
+            cluster_mean = self.data_frame[self.columns].ix[self.clusters == i].mean()
+            self.centers.set_value(i, self.columns, cluster_mean)
 
     def cluster(self):
 
         self._populate_initial_centers()
         self.__compute_distances()
         self.__get_clusters()
+        print(self.centers)
 
         counter = 0
 
         while True:
+            print(counter)
             counter += 1
 
             previous_clusters = self.clusters.copy()
@@ -110,6 +114,8 @@ class KMeansAbsMaf:
             self.__compute_new_centers()
             self.__compute_distances()
             self.__get_clusters()
+
+            print(self.centers)
 
             if self.max_iterations is not None and counter >= self.max_iterations:
                 break
