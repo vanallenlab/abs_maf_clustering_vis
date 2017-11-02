@@ -5,8 +5,7 @@ import copy
 
 
 class KMeansAbsMaf:
-    def __init__(self, data_frame, columns=None, max_iterations=None,
-                 appended_column_name=None):
+    def __init__(self, data_frame, columns=None, max_iterations=None):
         if not isinstance(data_frame, DataFrame):
             raise Exception("data_frame argument is not a pandas DataFrame")
         elif data_frame.empty:
@@ -26,7 +25,6 @@ class KMeansAbsMaf:
         self.distance_matrix = None
         self.clusters = None
         self.max_iterations = max_iterations
-        self.appended_column_name = appended_column_name
         self.k = 0
 
         if columns is None:
@@ -83,6 +81,15 @@ class KMeansAbsMaf:
             cluster_mean = self.data_frame[self.columns].ix[self.clusters == i].mean()
             self.centers.set_value(i, self.columns, cluster_mean)
 
+    def __compute_ssd(self):
+        """Compute sum of square distance between cluster centroid and members over all clusters"""
+        total_ssd = 0
+        for i in range(self.k):
+            centroid_value = - self.centers.iloc[i]
+            ssd = np.power(self.data_frame[self.columns].ix[self.clusters == i] - centroid_value, 2).sum()
+            total_ssd += ssd
+        self.ssd = total_ssd
+
     def cluster(self, k):
         if not isinstance(k, Integral) or k <= 0:
             raise Exception("k must be a positive integer")
@@ -92,29 +99,23 @@ class KMeansAbsMaf:
         self._populate_initial_centers()
         self.__compute_distances()
         self.__get_clusters()
-        print(self.centers)
+        self.__compute_ssd()
 
         counter = 0
 
         while True:
-            print(counter)
             counter += 1
-
             previous_clusters = self.clusters.copy()
 
             self.__compute_new_centers()
             self.__compute_distances()
             self.__get_clusters()
-
-            print(self.centers)
+            self.__compute_ssd()
 
             if self.max_iterations is not None and counter >= self.max_iterations:
                 break
             elif all(self.clusters == previous_clusters):
                 break
-
-        if self.appended_column_name is not None:
-            self.data_frame[self.appended_column_name] = self.clusters
 
     def __distances_from_point(self, point):
         """Calculate sum of square distances between given point and all other points"""

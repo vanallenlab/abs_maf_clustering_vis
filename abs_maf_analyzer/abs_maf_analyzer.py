@@ -6,6 +6,7 @@ from scipy.cluster.vq import vq, kmeans, whiten
 import matplotlib.pyplot as plt
 from collections import defaultdict
 from decimal import Decimal
+import math
 from k_means_abs_maf import KMeansAbsMaf
 
 
@@ -16,12 +17,33 @@ class AbsMafAnalyzer:
         self.exclude_silent = exclude_silent
         self.__read_abs_maf()
 
-    def cluster_ccfs(self):
-        # Cluster
-        num_clusters = 4
-        km = KMeansAbsMaf(self.abs_maf, columns=['ccf_hat'])
-        km.cluster(4)
+    def cluster(self):
+        self.__determine_optimal_k()
 
+    def __determine_optimal_k(self):
+        best_ssd = math.inf
+        best_model = None
+        k_vs_ssd = {}
+        percentage_decrease_at_k = []
+        for k in range(1, 10):
+            km = self.__cluster_ccfs(k)
+            ssd = km.ssd['ccf_hat']
+            k_vs_ssd[k] = ssd
+            if k > 1:
+                percentage_decrease_at_k.append((ssd - k_vs_ssd[k-1]) / k_vs_ssd[k-1])
+            if ssd < best_ssd:
+                best_model = km
+        plt.plot(k_vs_ssd.keys(), k_vs_ssd.values())
+        self.__plot_final_clusters(best_model)
+
+    def __cluster_ccfs(self, num_clusters):
+        # Cluster
+        km = KMeansAbsMaf(self.abs_maf, columns=['ccf_hat'])
+        km.cluster(num_clusters)
+        return km
+
+    def __plot_final_clusters(self, km):
+        num_clusters = len(km.centers)
         groups = []
         for i in range(num_clusters):
             groups.append([])
