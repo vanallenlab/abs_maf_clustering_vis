@@ -57,7 +57,6 @@ class KMeansPlusPlus:
     def _populate_initial_centers(self):
         rows = []
         rows.append(self._grab_random_point())
-        distances = None
 
         while len(rows) < self.k:
             dice_roll = np.random.rand()
