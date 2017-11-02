@@ -19,8 +19,8 @@ class AbsMafAnalyzer:
     def cluster_ccfs(self):
         # Cluster
         num_clusters = 4
-        km = KMeansAbsMaf(self.abs_maf, num_clusters, columns=['ccf_hat'])
-        km.cluster()
+        km = KMeansAbsMaf(self.abs_maf, columns=['ccf_hat'])
+        km.cluster(4)
 
         groups = []
         for i in range(num_clusters):
@@ -44,20 +44,21 @@ class AbsMafAnalyzer:
             # Change size of centroid depiction depending on number of points at value
             unit_size = 20
             fraction_in_cluster = cluster_size/len(self.abs_maf)
-            centroid_marker_size = fraction_in_cluster*unit_size + 5
+            centroid_marker_size = fraction_in_cluster*unit_size + 8
 
             ax.set_ylim(bottom=-.2, top=1.1)
+            ax.set_yticks(np.linspace(0, 1, 11))
 
             ax.set_xlabel("Cancer Cell Fraction")
             ax.set_ylabel("Detection Power")
-            ax.plot([centroid], [-.1], '.', c='k', markeredgewidth=1, markerfacecolor=color, alpha=0.5,
+            ax.plot([centroid], [-.1], '.', c='k', markeredgewidth=0, markerfacecolor=color,
                     markeredgecolor='k', markersize=centroid_marker_size)
 
-            ax.annotate("n = {}\nvalue = {}".format(len(data), round(centroid, 3)), (centroid, .0003))
             ax.scatter([d['ccf_hat'] for d in data], [d['dp'] for d in data],
                        alpha=1, c=color, edgecolors='none', s=unit_size, label=label)
 
         plt.title('Distribution of Cancer Cell Fraction for SNPs')
+        plt.axhspan(-.2, 0, facecolor='0.2', alpha=0.4)
         plt.show()
 
     def __read_abs_maf(self):

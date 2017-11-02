@@ -1,25 +1,18 @@
 from pandas import DataFrame, Series
-import pandas as pd
 import numpy as np
-import warnings
 from numbers import Integral
-import math
 import copy
 
-class KMeansAbsMaf:
 
-    def __init__(self, data_frame, k, columns=None, max_iterations=None,
+class KMeansAbsMaf:
+    def __init__(self, data_frame, columns=None, max_iterations=None,
                  appended_column_name=None):
         if not isinstance(data_frame, DataFrame):
             raise Exception("data_frame argument is not a pandas DataFrame")
         elif data_frame.empty:
             raise Exception("The given data frame is empty")
-
         if max_iterations is not None and max_iterations <= 0:
             raise Exception("max_iterations must be positive!")
-
-        if not isinstance(k, Integral) or k <= 0:
-            raise Exception("The value of k must be a positive integer")
 
         self.data_frame = data_frame  # m x n
         self.numRows = data_frame.shape[0]  # m
@@ -31,16 +24,10 @@ class KMeansAbsMaf:
         # from point i to center j
         # (where i and j start at 0)
         self.distance_matrix = None
-
-        # Series of length m, consisting of integers 0,1,...,k-1
         self.clusters = None
-
-        # To keep track of clusters in the previous iteration
-        self.previous_clusters = None
-
         self.max_iterations = max_iterations
         self.appended_column_name = appended_column_name
-        self.k = k
+        self.k = 0
 
         if columns is None:
             self.columns = data_frame.columns
@@ -96,7 +83,11 @@ class KMeansAbsMaf:
             cluster_mean = self.data_frame[self.columns].ix[self.clusters == i].mean()
             self.centers.set_value(i, self.columns, cluster_mean)
 
-    def cluster(self):
+    def cluster(self, k):
+        if not isinstance(k, Integral) or k <= 0:
+            raise Exception("k must be a positive integer")
+        else:
+            self.k = k
 
         self._populate_initial_centers()
         self.__compute_distances()
