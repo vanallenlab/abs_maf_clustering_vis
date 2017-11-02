@@ -1,12 +1,12 @@
-#import _version
 from pandas import DataFrame, Series
 import pandas as pd
 import numpy as np
 import warnings
 from numbers import Integral
+import math
 
 
-class KMeansPlusPlus:
+class KMeansAbsMaf:
 
     def __init__(self, data_frame, k, columns=None, max_iterations=None,
                  appended_column_name=None):
@@ -49,18 +49,18 @@ class KMeansPlusPlus:
                 if col not in data_frame.columns:
                     raise Exception(
                         "Column '%s' not found in the given DataFrame" % col)
-                if not self._is_numeric(col):
+                if not self.__is_numeric(col):
                     raise Exception(
                         "The column '%s' is either not numeric or contains NaN values" % col)
             self.columns = columns
 
     def _populate_initial_centers(self):
-        rows = []
-        rows.append(self._grab_random_point())
+        """Randomly choose k initial centroids, ensuring that they all have a different value"""
+        rows = list()
 
         while len(rows) < self.k:
             dice_roll = np.random.rand()
-            index = int(round(dice_roll * len(self.data_frame[self.columns]),0)-1)
+            index = int(round(dice_roll * self.numRows, 0)-1)
             point = self.data_frame[self.columns].iloc[index, :]
             duplicate_point = False
             for existing_point in rows:
@@ -71,43 +71,19 @@ class KMeansPlusPlus:
 
         self.centers = DataFrame(rows, columns=self.columns)
 
-    def _compute_distances(self):
-        if self.centers is None:
-            raise Exception(
-                "Must populate centers before distances can be calculated!")
-
+    def __compute_distances(self):
+        """Compute distances from each of k centroids for all points"""
         column_dict = {}
+        for centroid_index in range(self.k):
+            column_dict[centroid_index] = self.__distances_from_point(self.centers.iloc[centroid_index, :])
+        self.distance_matrix = DataFrame(column_dict, columns=range(self.k))
 
-        for i in list(range(self.k)):
-            column_dict[i] = self._distances_from_point(
-                self.centers.iloc[i, :])
+    def __get_clusters(self):
+        """Compute closest centroid for each point"""
+        index_of_closest_centroid = [np.argmin(self.distance_matrix.iloc[i, :], axis=1) for i in range(self.numRows)]
+        self.clusters = Series(index_of_closest_centroid, index=self.data_frame.index)
 
-        self.distance_matrix = DataFrame(
-            column_dict, columns=list(range(self.k)))
-
-    def _get_clusters(self):
-        if self.distance_matrix is None:
-            raise Exception(
-                "Must compute distances before closest centers can be calculated")
-
-        min_distances = self.distance_matrix.min(axis=1)
-
-        # We need to make sure the index
-        min_distances.index = list(range(self.numRows))
-
-        cluster_list = [boolean_series.index[j]
-                        for boolean_series in
-                        [
-                            self.distance_matrix.iloc[i, :] == min_distances.iloc[i]
-                            for i in list(range(self.numRows))
-                        ]
-                        for j in list(range(self.k))
-                        if boolean_series[j]
-                        ]
-
-        self.clusters = Series(cluster_list, index=self.data_frame.index)
-
-    def _compute_new_centers(self):
+    def __compute_new_centers(self):
         if self.centers is None:
             raise Exception("Centers not initialized!")
 
@@ -121,55 +97,31 @@ class KMeansPlusPlus:
     def cluster(self):
 
         self._populate_initial_centers()
-        self._compute_distances()
-        self._get_clusters()
+        self.__compute_distances()
+        self.__get_clusters()
 
         counter = 0
 
         while True:
             counter += 1
 
-            self.previous_clusters = self.clusters.copy()
+            previous_clusters = self.clusters.copy()
 
-            self._compute_new_centers()
-            self._compute_distances()
-            self._get_clusters()
+            self.__compute_new_centers()
+            self.__compute_distances()
+            self.__get_clusters()
 
             if self.max_iterations is not None and counter >= self.max_iterations:
                 break
-            elif all(self.clusters == self.previous_clusters):
+            elif all(self.clusters == previous_clusters):
                 break
 
         if self.appended_column_name is not None:
-            try:
-                self.data_frame[self.appended_column_name] = self.clusters
-            except:
-                warnings.warn(
-                    "Unable to append a column named %s to your data." %
-                    self.appended_column_name)
-                warnings.warn(
-                    "However, the clusters are available via the cluster attribute")
+            self.data_frame[self.appended_column_name] = self.clusters
 
-    def _distances_from_point(self, point):
-        # Sum of square distances from all other points
+    def __distances_from_point(self, point):
+        """Calculate sum of square distances between given point and all other points"""
         return np.power(self.data_frame[self.columns] - point, 2).sum(axis=1)
 
-    def _distances_from_point_list(self, point_list):
-        result = None
-
-        for point in point_list:
-            if result is None:
-                result = self._distances_from_point(point)
-            else:
-                result = pd.concat(
-                    [result, self._distances_from_point(point)], axis=1).min(axis=1)
-
-        return result
-
-    def _grab_random_point(self):
-        index = np.random.random_integers(0, self.numRows - 1)
-        # NumPy array
-        return self.data_frame[self.columns].iloc[index, :].values
-
-    def _is_numeric(self, col):
+    def __is_numeric(self, col):
         return all(np.isreal(self.data_frame[col])) and not any(np.isnan(self.data_frame[col]))
