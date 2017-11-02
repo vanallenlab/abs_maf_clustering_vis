@@ -5,7 +5,7 @@ from numpy import array
 from scipy.cluster.vq import vq, kmeans, whiten
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from k_means_plus_plus import *
+from k_means_abs_maf import KMeansAbsMaf
 
 
 class AbsMafAnalyzer:
@@ -16,16 +16,16 @@ class AbsMafAnalyzer:
     def cluster_ccfs(self):
         # Cluster
         num_clusters = 5
-        kmpp = KMeansPlusPlus(self.abs_maf, num_clusters, columns=['ccf_hat'])
-        kmpp.cluster()
-        print(kmpp.clusters)
-        centroid_values = [vector[0] for vector in kmpp.centers.values]
+        km = KMeansAbsMaf(self.abs_maf, num_clusters, columns=['ccf_hat'])
+        km.cluster()
+        print(km.clusters)
+        centroid_values = [vector[0] for vector in km.centers.values]
         groups = []
         for i in range(num_clusters):
             groups.append([])
 
         for index, row in self.abs_maf.iterrows():
-            group_index = kmpp.clusters[index]
+            group_index = km.clusters[index]
             groups[group_index].append(row.ccf_hat)
 
         colors = ('b', 'g', 'r', 'c', 'm', 'y', 'k', 'w')
