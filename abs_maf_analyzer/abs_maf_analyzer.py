@@ -11,30 +11,45 @@ from k_means_abs_maf import KMeansAbsMaf
 
 
 class AbsMafAnalyzer:
-    def __init__(self, abs_maf_path, detection_power_threshold=0, exclude_silent=True):
+    def __init__(self, abs_maf_path, detection_power_threshold=0, exclude_silent=True, k=None, k_ranges=None):
         self.abs_maf_path = abs_maf_path
         self.detection_power_threshold = detection_power_threshold
         self.exclude_silent = exclude_silent
         self.__read_abs_maf()
+        self.k = k
+        self.k_ranges = k_ranges if k_ranges else range(1, 7)
 
     def cluster(self):
-        self.__determine_optimal_k()
+        if self.k is None:
+            self.__determine_optimal_k()
+        else:
+            self.__cluster_ccfs(self.k)
 
     def __determine_optimal_k(self):
-        best_ssd = math.inf
-        best_model = None
-        k_vs_ssd = {}
-        percentage_decrease_at_k = []
-        for k in range(1, 10):
+        k_vs_avg_ssd = {}
+        percentage_decrease_at_k = {}
+        k_models = {}
+        for k in self.k_ranges:
             km = self.__cluster_ccfs(k)
-            ssd = km.ssd['ccf_hat']
-            k_vs_ssd[k] = ssd
+            km_2 = self.__cluster_ccfs(k)
+            km_3 = self.__cluster_ccfs(k)
+
+            avg_ssd = (km.ssd['ccf_hat'] + km_2.ssd['ccf_hat'] + km_3.ssd['ccf_hat']) / 3
+
+            k_vs_avg_ssd[k] = avg_ssd
             if k > 1:
-                percentage_decrease_at_k.append((ssd - k_vs_ssd[k-1]) / k_vs_ssd[k-1])
-            if ssd < best_ssd:
-                best_model = km
-        plt.plot(k_vs_ssd.keys(), k_vs_ssd.values())
-        self.__plot_final_clusters(best_model)
+                percentage_decrease_at_k[k] = ((k_vs_avg_ssd[k-1] - avg_ssd) / k_vs_avg_ssd[k-1])
+            k_models[k] = km
+
+        max_decrease = max(percentage_decrease_at_k.values())
+        elbow_k = [k for k, v in percentage_decrease_at_k.items() if v == max_decrease][0]
+        plt.plot(k_vs_avg_ssd.keys(), k_vs_avg_ssd.values())
+        plt.xlabel('Number of Clusters (k)')
+        plt.ylabel('Sum of Squares Distance')
+        plt.title('Sum of Squares Distance vs. Number of Clusters')
+
+        plt.axvline(elbow_k, color='r', linestyle='dashed', linewidth=2)
+        self.__plot_final_clusters(k_models[elbow_k])
 
     def __cluster_ccfs(self, num_clusters):
         # Cluster

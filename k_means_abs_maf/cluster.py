@@ -60,10 +60,10 @@ class KMeansAbsMaf:
 
     def __compute_distances(self):
         """Compute distances from each of k centroids for all points"""
-        column_dict = {}
+        distance_to_centroid = {}
         for centroid_index in range(self.k):
-            column_dict[centroid_index] = self.__distances_from_point(self.centers.iloc[centroid_index, :])
-        self.distance_matrix = DataFrame(column_dict, columns=range(self.k))
+            distance_to_centroid[centroid_index] = self.__distances_from_point(self.centers.iloc[centroid_index, :])
+        self.distance_matrix = DataFrame(distance_to_centroid, columns=range(self.k))
 
     def __get_clusters(self):
         """Compute closest centroid for each point"""
@@ -85,8 +85,9 @@ class KMeansAbsMaf:
         """Compute sum of square distance between cluster centroid and members over all clusters"""
         total_ssd = 0
         for i in range(self.k):
-            centroid_value = - self.centers.iloc[i]
-            ssd = np.power(self.data_frame[self.columns].ix[self.clusters == i] - centroid_value, 2).sum()
+            centroid_value = self.centers.iloc[i]
+            values_of_cluster_members = self.data_frame[self.columns].ix[self.clusters == i]
+            ssd = np.power(values_of_cluster_members - centroid_value, 2).sum()
             total_ssd += ssd
         self.ssd = total_ssd
 
@@ -99,7 +100,6 @@ class KMeansAbsMaf:
         self._populate_initial_centers()
         self.__compute_distances()
         self.__get_clusters()
-        self.__compute_ssd()
 
         counter = 0
 
@@ -110,16 +110,19 @@ class KMeansAbsMaf:
             self.__compute_new_centers()
             self.__compute_distances()
             self.__get_clusters()
-            self.__compute_ssd()
 
             if self.max_iterations is not None and counter >= self.max_iterations:
                 break
             elif all(self.clusters == previous_clusters):
                 break
 
+        self.__compute_ssd()
+
     def __distances_from_point(self, point):
         """Calculate sum of square distances between given point and all other points"""
-        return np.power(self.data_frame[self.columns] - point, 2).sum(axis=1)
+        difference = self.data_frame[self.columns] - point[self.columns]
+        square_distance = np.power(difference, 2)
+        return square_distance.sum(axis=1)
 
     def __is_numeric(self, col):
         return all(np.isreal(self.data_frame[col])) and not any(np.isnan(self.data_frame[col]))
