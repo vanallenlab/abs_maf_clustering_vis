@@ -11,13 +11,14 @@ from k_means_abs_maf import KMeansAbsMaf
 
 
 class AbsMafAnalyzer:
-    def __init__(self, abs_maf_path, detection_power_threshold=0, exclude_silent=True, k=None, k_ranges=None):
+    def __init__(self, abs_maf_path, detection_power_threshold=0, accession=None, exclude_silent=True, k=None, k_ranges=None):
         self.abs_maf_path = abs_maf_path
         self.detection_power_threshold = detection_power_threshold
         self.exclude_silent = exclude_silent
         self.__read_abs_maf()
         self.k = k
-        self.k_ranges = k_ranges if k_ranges else range(1, 7)
+        self.accession = accession
+        self.k_ranges = k_ranges if k_ranges else range(1, 15)
 
     def cluster(self):
         if self.k is None:
@@ -26,6 +27,7 @@ class AbsMafAnalyzer:
             self.__cluster_ccfs(self.k)
 
     def __determine_optimal_k(self):
+        threshold_angle = 7
         k_vs_avg_ssd = {}
         percentage_decrease_at_k = {}
         k_models = {}
@@ -38,18 +40,28 @@ class AbsMafAnalyzer:
 
             k_vs_avg_ssd[k] = avg_ssd
             if k > 1:
-                percentage_decrease_at_k[k] = ((k_vs_avg_ssd[k-1] - avg_ssd) / k_vs_avg_ssd[k-1])
+                percentage_decrease_at_k[k] = ((k_vs_avg_ssd[k-1] - avg_ssd) / avg_ssd)
             k_models[k] = km
 
         max_decrease = max(percentage_decrease_at_k.values())
         elbow_k = [k for k, v in percentage_decrease_at_k.items() if v == max_decrease][0]
+        best_k = elbow_k
+        for k in self.k_ranges[elbow_k:]:
+            radian_angle = np.arctan(k_vs_avg_ssd[k] - k_vs_avg_ssd[k-1])
+            degrees_angle = 180 * radian_angle / math.pi
+            print(k, degrees_angle)
+            if -degrees_angle < threshold_angle:
+                best_k = k
+                break
+
         plt.plot(k_vs_avg_ssd.keys(), k_vs_avg_ssd.values())
         plt.xlabel('Number of Clusters (k)')
         plt.ylabel('Sum of Squares Distance')
         plt.title('Sum of Squares Distance vs. Number of Clusters')
 
-        plt.axvline(elbow_k, color='r', linestyle='dashed', linewidth=2)
-        self.__plot_final_clusters(k_models[elbow_k])
+        plt.axvline(best_k, color='g', linestyle='dashed', linewidth=2)
+
+        self.__plot_final_clusters(k_models[best_k])
 
     def __cluster_ccfs(self, num_clusters):
         # Cluster
@@ -94,7 +106,8 @@ class AbsMafAnalyzer:
             ax.scatter([d['ccf_hat'] for d in data], [d['dp'] for d in data],
                        alpha=1, c=color, edgecolors='none', s=unit_size, label=label)
 
-        plt.title('Distribution of Cancer Cell Fraction for SNPs')
+        plt.title('Distribution of Cancer Cell Fraction for SNPs {}'
+                  .format('in {}'.format(self.accession) if self.accession else None))
         plt.axhspan(-.2, 0, facecolor='0.2', alpha=0.4)
         plt.show()
 
