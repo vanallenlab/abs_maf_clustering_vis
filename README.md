@@ -5,6 +5,14 @@ The AbsMafAnalyzer workflow can be used to visualize the data from an *ABS_MAF.t
 Both detection power and genomic locus are plotted for all SNPs, along with clustering information based
 on cancer cell fraction.
 
+Installation
+------------
+Add abs_maf_analyzer and k_means_abs_maf folders into your project folder.
+Ensure the libraries specified in the requirements.txt file are available in your working environment.
+If not, simply run `pip install -r requirements.txt`.
+Then, as described below, just import the AbsMafAnalyzer class from the abs_maf_analyzer package.
+
+
 Parameters
 ----------
 The following parameters can be provided to an AbsMafAnalyzer object:
