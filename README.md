@@ -7,8 +7,8 @@ on cancer cell fraction.
 
 Example Output
 --------------
-![An example output plot](example_plots/example_plot.png)
-
+![An example plot](example_plots/example_plot.png)
+![An example SSD plot](example_plots/example_ssd_plot.png)
 
 Installation
 ------------
