@@ -8,7 +8,8 @@ on cancer cell fraction.
 Example Output
 --------------
 ![An example plot](example_plots/example_plot.png)
-![An example SSD plot](example_plots/example_ssd_plot.png)
+
+An example plot describing the SSD dropoff for different values of k can also be found in the example_plots folder.
 
 Installation
 ------------
