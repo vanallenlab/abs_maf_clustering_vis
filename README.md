@@ -5,8 +5,8 @@ The AbsMafAnalyzer workflow can be used to visualize the data from an *ABS_MAF.t
 Both detection power and genomic locus are plotted for all SNPs, along with clustering information based
 on cancer cell fraction.
 
-Usage
------
+Parameters
+----------
 The following parameters can be provided to an AbsMafAnalyzer object:
 * `abs_maf_path`: The path to the *ABS_MAF file to be analyzed.
 
