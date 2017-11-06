@@ -28,5 +28,6 @@ Example usage in a script:
     if __name__ == '__main__':
         main()
 
-* The k-means implementation used here, which leverages pandas, is loosely based on an implementation by Jack Maney,
-which can be found here: https://github.com/jackmaney/k-means-plus-plus-pandas
+* The k-means implementation used here, which leverages pandas, is very loosely based on an implementation by Jack Maney,
+which can be found here: https://github.com/jackmaney/k-means-plus-plus-pandas. Significant changes were made to
+improve the conciseness, accuracy, and clarity of the code in the aforementioned framework.
