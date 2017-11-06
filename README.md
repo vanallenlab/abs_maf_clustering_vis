@@ -9,9 +9,13 @@ Usage
 -----
 The following parameters can be provided to an AbsMafAnalyzer object:
     * `abs_maf_path`: The path to the *ABS_MAF file to be analyzed.
+
     * `detection_power_threshold`: A threshold for detection power. By default there is no threshold; if one is set, only SNPs with a detection power above the given threshold will be analyzed and plotted.
+
     * `accession`: The accession for the sample. It will be used to title the output plots.
+
     * `exclude_silent`: If set to True, only SNPs with a non-silent effect will be analyzed and plotted.
+    
     * `k_ranges`: By default k-means will test k-values between 1 and 10. A customized range of k-values can be tested instead by supplying such a list for this parameter.
 
 
