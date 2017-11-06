@@ -1,7 +1,12 @@
+AbsMafAnalysis Workflow
+=======================
+
 The AbsMafAnalysis workflow can be used to visualize the data from an *ABS_MAF.txt absolute file output.
 Both detection power and genomic locus are plotted for all SNPs, along with clustering information based
 on cancer cell fraction.
 
+Example Usage
+-------------
 Example usage in a script:
 
     from abs_maf_analyzer.abs_maf_analyzer import AbsMafAnalyzer
