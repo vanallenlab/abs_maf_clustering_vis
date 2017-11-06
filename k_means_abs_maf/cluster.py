@@ -6,10 +6,6 @@ import copy
 
 class KMeansAbsMaf:
     def __init__(self, data_frame, columns=None, max_iterations=None):
-        if not isinstance(data_frame, DataFrame):
-            raise Exception("data_frame argument is not a pandas DataFrame")
-        elif data_frame.empty:
-            raise Exception("The given data frame is empty")
         if max_iterations is not None and max_iterations <= 0:
             raise Exception("max_iterations must be positive!")
 

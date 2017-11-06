@@ -1,11 +1,7 @@
 import pandas as pd
 import numpy as np
-import scipy as sp
-from numpy import array
-from scipy.cluster.vq import vq, kmeans, whiten
 import matplotlib.pyplot as plt
 from collections import defaultdict
-from decimal import Decimal
 import math
 from k_means_abs_maf import KMeansAbsMaf
 
@@ -38,20 +34,19 @@ class AbsMafAnalyzer:
         'Y': 57227415
     }
 
-    def __init__(self, abs_maf_path, detection_power_threshold=0, accession=None, exclude_silent=True, k=None, k_ranges=None):
+    def __init__(self, abs_maf_path, detection_power_threshold=0, accession=None, exclude_silent=True, k_ranges=None):
         self.abs_maf_path = abs_maf_path
         self.detection_power_threshold = detection_power_threshold
         self.exclude_silent = exclude_silent
         self.__read_abs_maf()
-        self.k = k
         self.accession = accession
         self.k_ranges = k_ranges if k_ranges else range(1, 10)
 
-    def cluster(self):
-        if self.k is None:
+    def cluster(self, k=None):
+        if k is None:
             self.__determine_optimal_k()
         else:
-            self.__plot_final_clusters(self.__cluster_ccfs(self.k))
+            self.__plot_final_clusters(self.__cluster_ccfs(k))
 
     def __determine_optimal_k(self):
         threshold_angle = 10
