@@ -2,7 +2,7 @@ AbsMafAnalyzer Workflow
 =======================
 
 The AbsMafAnalyzer workflow can be used to visualize the data from an *ABS_MAF.txt absolute file output.
-Both detection power and genomic locus are plotted for all SNPs, along with clustering information based
+Detection power, multiplicity, and genomic locus are plotted for all SNPs, along with clustering information based
 on cancer cell fraction.
 
 Example Output
