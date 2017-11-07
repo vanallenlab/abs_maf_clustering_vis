@@ -177,7 +177,7 @@ class AbsMafAnalyzer:
             ax_3.grid(color='k', linestyle='-', linewidth=.2)
             ax_3.set_xlabel("Cancer Cell Fraction (c_hat)")
             ax_3.set_ylabel("Multiplicity (q_hat)")
-            ax_3.plot([centroid], [-.35], '.', c='k', markeredgewidth=0, markerfacecolor=color,
+            ax_3.plot([centroid], [-.1*max_q_hat], '.', c='k', markeredgewidth=0, markerfacecolor=color,
                       markeredgecolor='k', markersize=centroid_marker_size)
 
             point_sizes = [(count_at_ccf_and_q_hat[(snp.get('ccf_hat'), snp.get('q_hat'))] - min_dp_count) / (max_dp_count - min_dp_count) * point_max_size + point_min_size for snp in data]
