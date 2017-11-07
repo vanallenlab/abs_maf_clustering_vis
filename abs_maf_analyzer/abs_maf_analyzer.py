@@ -44,9 +44,10 @@ class AbsMafAnalyzer:
 
     def cluster(self, k=None):
         if k is None:
-            self.__determine_optimal_k()
+            km = self.__determine_optimal_k()
         else:
-            self.__plot_final_clusters(self.__cluster_ccfs(k))
+            km = self.__cluster_ccfs(k)
+        self.__plot_final_clusters(km)
 
     def __determine_optimal_k(self):
         threshold_angle = 10
@@ -83,7 +84,7 @@ class AbsMafAnalyzer:
         plt.title('Sum of Squares Distance vs. Number of Clusters')
         plt.axvline(best_k, color='g', linestyle='dashed', linewidth=2)
 
-        self.__plot_final_clusters(k_models[best_k])
+        return k_models[best_k]
 
     def __cluster_ccfs(self, num_clusters):
         # Cluster
@@ -100,6 +101,7 @@ class AbsMafAnalyzer:
         for index, row in self.abs_maf.iterrows():
             group_index = km.clusters[index]
             groups[group_index].append({'ccf_hat': row.ccf_hat,
+                                        'q_hat': row.q_hat,
                                         'dp': row.detection_power,
                                         'chr': row.Chromosome,
                                         'pos': row.Start_position})
@@ -107,15 +109,20 @@ class AbsMafAnalyzer:
         # Create plot
         fig = plt.figure()
         fig.set_size_inches(10, 10)
-        ax = plt.subplot2grid((5, 1), (0, 0), rowspan=2)
-        ax_2 = plt.subplot2grid((5, 1), (2, 0), rowspan=3)
+        ax = plt.subplot2grid((5, 6), (0, 0), rowspan=2, colspan=3)
+        ax_2 = plt.subplot2grid((5, 6), (2, 0), rowspan=3, colspan=6)
+        ax_3 = plt.subplot2grid((5, 6), (0, 3), rowspan=2, colspan=3)
 
         count_at_ccf_and_dp = defaultdict(int)
+        count_at_ccf_and_q_hat = defaultdict(int)
         for group in groups:
             for snp in group:
                 count_at_ccf_and_dp[(snp.get('ccf_hat'), round(snp.get('dp'), 2))] += 1
-        max_count = max(count_at_ccf_and_dp.values())
-        min_count = min(count_at_ccf_and_dp.values())
+                count_at_ccf_and_q_hat[(snp.get('ccf_hat'), snp.get('q_hat'))] += 1
+        max_dp_count = max(count_at_ccf_and_dp.values())
+        min_dp_count = min(count_at_ccf_and_dp.values())
+
+        max_q_hat = max(max([d['q_hat'] for d in data] for data in groups))
 
         centroid_values = [vector[0] for vector in km.centers.values]
         for data, color, label, centroid in zip(groups,
@@ -125,7 +132,7 @@ class AbsMafAnalyzer:
             # Base size of points
             point_max_size = 35
             point_min_size = 5
-            point_sizes = [(count_at_ccf_and_dp[(snp.get('ccf_hat'), round(snp.get('dp'), 2))]-min_count)/(max_count - min_count) * point_max_size + point_min_size for snp in data]
+            point_sizes = [(count_at_ccf_and_dp[(snp.get('ccf_hat'), round(snp.get('dp'), 2))]-min_dp_count)/(max_dp_count - min_dp_count) * point_max_size + point_min_size for snp in data]
 
             cluster_size = len(data)
             cluster_max_size = 50
@@ -139,8 +146,8 @@ class AbsMafAnalyzer:
             ax.set_yticks(np.linspace(0, 1, 11))
             ax.grid(color='k', linestyle='-', linewidth=.2)
 
-            ax.set_xlabel("Cancer Cell Fraction")
-            ax.set_ylabel("Detection Power")
+            ax.set_xlabel("Cancer Cell Fraction (c_hat)")
+            ax.set_ylabel("Detection Power (dp)")
             ax.plot([centroid], [-.1], '.', c='k', markeredgewidth=0, markerfacecolor=color,
                     markeredgecolor='k', markersize=centroid_marker_size)
 
@@ -155,7 +162,7 @@ class AbsMafAnalyzer:
             for tick in ax_2.yaxis.get_major_ticks():
                 tick.label.set_fontsize(5)
 
-            ax_2.set_xlabel("Cancer Cell Fraction")
+            ax_2.set_xlabel("Cancer Cell Fraction (c_hat)")
             ax_2.set_ylabel("Genome Location")
             ax_2.plot([centroid], [-.1], '.', c='k', markeredgewidth=0, markerfacecolor=color,
                       markeredgecolor='k', markersize=centroid_marker_size)
@@ -164,12 +171,28 @@ class AbsMafAnalyzer:
             ax_2.scatter([d['ccf_hat'] for d in data], data_y,
                          alpha=1, c=color, edgecolors='none', s=point_min_size, label=label)
 
+            # Plot the SNPs in the context of their multiplicity
+            ax_3.set_ylim(bottom=-.2*max_q_hat, top=max_q_hat*1.05)
+            ax_3.set_yticks(range(max_q_hat+1))
+            ax_3.grid(color='k', linestyle='-', linewidth=.2)
+            ax_3.set_xlabel("Cancer Cell Fraction (c_hat)")
+            ax_3.set_ylabel("Multiplicity (q_hat)")
+            ax_3.plot([centroid], [-.35], '.', c='k', markeredgewidth=0, markerfacecolor=color,
+                      markeredgecolor='k', markersize=centroid_marker_size)
+
+            point_sizes = [(count_at_ccf_and_q_hat[(snp.get('ccf_hat'), snp.get('q_hat'))] - min_dp_count) / (max_dp_count - min_dp_count) * point_max_size + point_min_size for snp in data]
+
+            ax_3.scatter([d['ccf_hat'] for d in data], [d['q_hat'] for d in data],
+                         alpha=1, c=color, edgecolors='none', s=point_sizes, label=label)
+
         fig.suptitle('Cancer Cell Fraction Clustering for SNPs {}'.format('in {}'.format(self.accession) if self.accession else None))
         ax.set_title("Detection Power and CCF for each SNP")
         ax_2.set_title("Genomic Location and CCF for each SNP")
+        ax_3.set_title("Multiplicity and CCF for each SNP")
         ax.axhspan(-.2, 0, facecolor='0.2', alpha=0.4)
         ax_2.axhspan(-.2, 0, facecolor='0.2', alpha=0.4)
-        fig.subplots_adjust(hspace=1)
+        ax_3.axhspan(-.2*max_q_hat, 0, facecolor='0.2', alpha=0.4)
+        fig.subplots_adjust(hspace=1, wspace=1)
 
         plt.show()
 
@@ -211,7 +234,7 @@ class AbsMafAnalyzer:
         abs_maf = pd.read_csv('{}'.format(self.abs_maf_path), sep='\t')
         abs_maf = abs_maf.loc[:, ['Hugo_Symbol', 'Chromosome', 'Start_position', 'End_position',
                                   'Variant_Classification', 'Variant_Type', 'Reference Alelle',
-                                  'Tumor_Seq_Allele1', 'Tumor_Seq_Allele2', 'ccf_hat', 'detection_power']]
+                                  'Tumor_Seq_Allele1', 'Tumor_Seq_Allele2', 'ccf_hat', 'q_hat', 'detection_power']]
 
         if self.exclude_silent:
             abs_maf = abs_maf[abs_maf.Variant_Classification != 'Silent']
