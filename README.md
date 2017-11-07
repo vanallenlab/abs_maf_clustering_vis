@@ -5,6 +5,12 @@ The AbsMafAnalyzer workflow can be used to visualize the data from an *ABS_MAF.t
 Both detection power and genomic locus are plotted for all SNPs, along with clustering information based
 on cancer cell fraction.
 
+Example Output
+--------------
+![An example plot](example_plots/example_plot.png)
+
+An example plot describing the SSD dropoff for different values of k can also be found in the example_plots folder.
+
 Installation
 ------------
 Add abs_maf_analyzer and k_means_abs_maf folders into your project folder.
